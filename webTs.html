@@ -1,0 +1,236 @@
+<html lang="en">  
+<head>  
+    <meta charset="utf-8" />  
+    <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no" />  
+    <title>WebTest</title>  
+  
+    <link rel="stylesheet" href="https://js.arcgis.com/4.29/esri/themes/light/main.css" />  
+    <script src="https://js.arcgis.com/4.29/"></script>  
+  
+    <style>  
+      body, html {    
+            height: 100%;    
+            margin: 0;    
+            padding: 0;    
+        }    
+        #viewDiv {  
+            padding: 0;  
+            margin: 0;  
+            height: 100%;  
+            width: 100%;  
+        }  
+        #header {  
+            height: 50px;  
+            background-color: #54cb73;  
+            display: flex;  
+            align-items: center; /* 垂直居中 */  
+            justify-content: center; /* 水平居中 */  
+            padding: 0 10px; /* 添加内边距以容纳按钮 */  
+        }  
+        #header h1 {  
+            margin: 0; /* 移除标题默认的边距 */  
+        }  
+        #button-container {  
+            display: flex;  
+            align-items: center;  
+            justify-content: flex-end; /* 将按钮组推到右侧 */  
+            margin-left: auto; /* 使标题和按钮之间有空间 */  
+        }  
+        #basemapGalleryDiv {    
+            height: 100px;   
+            background-color: #07612e;   
+            overflow: auto;   
+            
+        }
+        .esri-scale-bar {  
+            position: absolute;  
+            bottom: 10px; 
+            left: 10px; 
+            z-index: 5;  
+        }
+        .esri-button { /* 修改esri按钮样式，如果需要的话 */  
+            margin: 0;  
+            padding: 5px 10px;  
+        }  
+        .form-group {  
+            margin-bottom: 10px;  
+        }  
+        .form-control {  
+            width: 200px;  
+            padding: 5px;  
+        }               
+    
+        main {    
+            display: flex;    
+            flex-direction: column;    
+            height: calc(100% - 50px);    
+        }
+    </style>  
+  
+    <script>  
+
+    
+        require([  
+            "esri/Map",  
+            "esri/views/MapView",  
+            "esri/layers/FeatureLayer",  
+            "esri/widgets/BasemapGallery",
+            "esri/widgets/ScaleBar",
+            "esri/widgets/Legend",
+            "esri/widgets/Search",
+            "esri/widgets/LayerList",
+            "esri/widgets/CoordinateConversion"
+ 
+        ], (Map, MapView, FeatureLayer, BasemapGallery,ScaleBar,Legend,Search,LayerList,CoordinateConversion) => {   
+            const featureLayer = new FeatureLayer({  
+                url: "https://www.geosceneonline.cn/server/rest/services/Hosted/全国各省人口自然增长率/FeatureServer"  
+            });       
+  
+            const map = new Map({  
+                basemap: "streets"  
+            });  
+            map.add(featureLayer);  
+  
+            const view = new MapView({  
+                map: map,  
+                container: "viewDiv",  
+                zoom: 3,  
+                center: [108, 34]  
+            });  
+
+
+
+            const scaleBar = new ScaleBar({
+             view: view,
+             unit: "imperial"
+             });
+             view.ui.add(scaleBar, {
+             position: "bottom-left"
+             });
+
+            var legend = new Legend({  
+             view: view  
+             });  
+             view.ui.add(legend, "top-right");
+
+            var search = new Search({  
+             view: view  
+             });  
+             view.ui.add(search, "top-left"); 
+
+            var layerList = new LayerList({  
+             view: view  
+             });  
+             view.ui.add(layerList, "bottom-right");
+            
+            var basemapGallery = new BasemapGallery({    
+                view: view,    
+                container: "basemapGalleryDiv",
+                visibleBasemaps: ["topo-vector", "satellite", "streets-night-vector"]    
+            });    
+            basemapGallery.startup();
+
+
+
+
+
+             
+        });  
+        var coordinateConversion = new CoordinateConversion({
+        view: view
+    });
+    view.ui.add(coordinateConversion, "bottom-right");
+
+
+      // 获取下拉框的选中值
+      var selectedValue = document.getElementById("conditionSelect").value;
+
+// 添加查询按钮的点击事件
+var queryButton = document.getElementById("queryButton");
+queryButton.addEventListener("click", function () {
+  // 获取下拉框的选项值
+  var selectedOption = document.getElementById("conditionSelect").value;
+
+  // 获取输入框的值
+  var inputValue = document.getElementById("inputValue").value;
+
+  // 构建查询条件
+  var query = featureLayer.createQuery();
+  query.where = "Inc_Type = '" + inputValue + "'";
+  query.returnGeometry = true;
+
+  // 执行查询
+  featureLayer.queryFeatures(query).then(function (response) {
+    // 清除之前的高亮
+    featureLayerView.effect = null;
+
+    // 高亮满足条件的要素
+    var features = response.features;
+    featureLayerView.effect = {
+      filter: {
+        where: query.where
+      },
+      includedEffect: "highlight"
+    };
+
+    // 缩放至查询结果
+    if (features.length > 0) {
+      view.goTo(features, {
+        zoom: 10
+      });
+    }
+  }).catch(function (error) {
+    console.error("查询要素时出现错误:", error);
+  });
+});
+
+// 添加清除按钮的点击事件
+var clearButton = document.getElementById("clearButton");
+clearButton.addEventListener("click", function () {
+  // 清除要素的高亮
+  featureLayerView.effect = null;
+});
+
+// 获取要素图层的视图对象
+var featureLayerView;
+view.whenLayerView(featureLayer).then(function (layerView) {
+  featureLayerView = layerView;
+});
+
+
+
+
+
+
+            
+            var basemapGallery = new BasemapGallery({    
+                view: view,    
+                container: "basemapGalleryDiv",
+                visibleBasemaps: ["topo-vector", "satellite", "streets-night-vector"]    
+             });    
+             basemapGallery.startup();
+
+    
+    </script>  
+</head>  
+  
+<body>  
+    <header id="header">       
+        <h1>全国人口自然增长率</h1>  
+       <div id="button-container">  
+           <button id="queryButton" class="esri-button">Select</button>  
+           <button id="clearButton" class="esri-button">Eliminate</button>  
+           </select>
+           
+       </div>  
+       <div class="form-group">
+           <label for="inputValue">Condition：</label>
+           <input type="text" id="inputValue" class="form-control" />
+         </div>
+   </header>    
+   <main>    
+       <div id="viewDiv"></div>  
+       <div id="basemapGalleryDiv"></div>
+   </main>        
+</body>  
+</html>
